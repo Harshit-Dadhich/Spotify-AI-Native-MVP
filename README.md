@@ -9,9 +9,19 @@ a plain-English reason and a "distance from your taste" label for each pick.
 1. Create a **new** GitHub repo (e.g. `discovery-mvp`) — keep this separate from your
    Part 1 review-engine repo, since these are two different deliverables.
 2. Upload `app.py`, `requirements.txt`, and this `README.md`.
+   **Do NOT upload `.streamlit_secrets_TEMPLATE.toml`** — that's just a reference for step 4.
 3. Go to [share.streamlit.io](https://share.streamlit.io) → New app → select this repo →
    main file path `app.py` → Deploy.
-4. You'll get a public link like `https://discovery-mvp-xxxxx.streamlit.app` — this is your
+4. **Add your API key as a secret (so testers don't need to enter one):**
+   - Once deployed, go to your app → click the "⋮" menu → **Settings** → **Secrets**
+   - Paste this in the box:
+     ```
+     GEMINI_API_KEY = "your-actual-gemini-key-here"
+     ```
+   - Click Save. The app will restart automatically.
+   - This key is now private to your Streamlit account — it never appears in your public
+     GitHub repo, and visitors to your app link never see it or need to enter one.
+5. You'll get a public link like `https://discovery-mvp-xxxxx.streamlit.app` — this is your
    Part 4 submission link.
 
 ## How to use it
