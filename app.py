@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-import anthropic
 import json
 import re
 import html as html_module
@@ -163,39 +162,31 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Sidebar — provider/key (secrets-first, so testers don't need their own key)
+# Sidebar — Gemini key (secrets-first, so testers don't need their own key)
 # ---------------------------------------------------------------------------
-def get_default_key(provider_name):
+def get_default_key():
     try:
-        if provider_name == "Gemini (free)":
-            return st.secrets.get("GEMINI_API_KEY", "")
-        else:
-            return st.secrets.get("ANTHROPIC_API_KEY", "")
+        return st.secrets.get("GEMINI_API_KEY", "")
     except Exception:
         return ""
 
 with st.sidebar:
     st.header("⚙️ Settings")
-    provider = st.radio(
-        "AI Provider",
-        ["Gemini (free)", "Claude"],
-        help="Gemini's API has a free tier with no credit card needed. Claude requires paid credits."
-    )
 
-    default_key = get_default_key(provider)
+    default_key = get_default_key()
 
     if default_key:
         api_key = default_key
         st.success("✅ Using built-in API key — no setup needed.")
         with st.expander("Use your own key instead"):
-            override = st.text_input("Your API key", type="password")
+            override = st.text_input("Your Gemini API key", type="password")
             if override:
                 api_key = override
     else:
         api_key = st.text_input(
-            f"{'Gemini' if provider == 'Gemini (free)' else 'Claude'} API Key",
+            "Gemini API Key",
             type="password",
-            help="Get a free key at aistudio.google.com/apikey" if provider == "Gemini (free)" else None
+            help="Get a free key at aistudio.google.com/apikey"
         )
 
     st.markdown("---")
@@ -242,15 +233,18 @@ Comfort-zone slider (0 = stay very close to usual taste, 100 = surprise them wit
 
 FIRST, check whether these inputs make sense as a music taste/mood description. If either input is gibberish,
 unrelated to music (e.g. "fix my car", random characters, empty gibberish), or too vague to work with even
-with reasonable inference, respond with ONLY this JSON object (no markdown fences, no commentary):
+with reasonable inference, respond with ONLY this JSON object (no markdown fences, no commentary, no extra text
+before or after):
 {{"valid": false, "message": "<one short, friendly sentence explaining what's missing or unclear, and what kind of input would work instead>"}}
 
-OTHERWISE, interpret their taste (do not ask clarifying questions — infer sensibly), then recommend 8 real
-songs/artists that fit their current mood request. Bias your picks toward matching the comfort-zone slider
-honestly — a high number should include genuinely less-obvious, farther-from-taste picks, not just more of
-the same with a different label.
+OTHERWISE — including when the slider is 0 — always return exactly 8 recommendations. At slider 0, all 8 should
+simply be tagged "close" and stay very safely within their stated taste; do not skip the list or explain your
+reasoning outside the JSON. Interpret their taste (do not ask clarifying questions — infer sensibly), then
+recommend 8 real songs/artists that fit their current mood request. Bias your picks toward matching the
+comfort-zone slider honestly across its full range.
 
-Respond with ONLY a valid JSON array (no markdown fences, no commentary), where each item has:
+Respond with ONLY a valid JSON array — no markdown fences, no commentary, no text before or after the array —
+where each item has:
 - "title": song title
 - "artist": artist name
 - "reason": one sentence, in plain conversational language, explaining specifically why this fits their mood/taste
@@ -263,6 +257,22 @@ def extract_json(text):
     text = text.strip()
     text = re.sub(r"^```(json)?", "", text).strip()
     text = re.sub(r"```$", "", text).strip()
+
+    # If the model added stray commentary before/after the JSON, isolate the
+    # actual JSON array or object by finding the outermost brackets.
+    first = min(
+        (text.find(c) for c in "[{" if c in text),
+        default=-1,
+    )
+    if first > 0:
+        text = text[first:]
+
+    for close_char, open_char in (("]", "["), ("}", "{")):
+        last = text.rfind(close_char)
+        if last != -1 and text.startswith(open_char):
+            text = text[: last + 1]
+            break
+
     return json.loads(text)
 
 
@@ -272,38 +282,38 @@ DIST_LABEL = {
     "stretch": "Genuine stretch",
 }
 
+@st.dialog("Something went wrong")
+def show_error_dialog():
+    st.write("We couldn't put together your discovery mix this time. Please try again in a moment.")
+    if st.button("OK", type="primary", use_container_width=True):
+        st.rerun()
+
+@st.dialog("Missing information")
+def show_missing_input_dialog(message):
+    st.write(message)
+    if st.button("OK", type="primary", use_container_width=True):
+        st.rerun()
+
 if go:
     if not api_key:
-        st.error("⚠️ Please enter your API key in the sidebar.")
+        show_missing_input_dialog("Please add an API key in the sidebar before discovering music.")
         st.stop()
     if not taste.strip() or not request.strip():
-        st.error("⚠️ Please fill in both your taste and your current mood/request.")
+        show_missing_input_dialog("Please fill in both your taste and your current mood/request.")
         st.stop()
 
     prompt = build_prompt(taste, request, adventure)
 
     with st.spinner("🎧 Interpreting your taste and finding matches..."):
         try:
-            if provider == "Gemini (free)":
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel("gemini-2.5-flash")
-                response = model.generate_content(prompt)
-                raw = response.text
-            else:
-                client = anthropic.Anthropic(api_key=api_key)
-                msg = client.messages.create(
-                    model="claude-sonnet-4-5",
-                    max_tokens=1500,
-                    messages=[{"role": "user", "content": prompt}],
-                )
-                raw = msg.content[0].text
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            response = model.generate_content(prompt)
+            raw = response.text
 
             recs = extract_json(raw)
-        except json.JSONDecodeError:
-            st.error("The AI response wasn't valid JSON. Try clicking Discover again.")
-            st.stop()
-        except Exception as e:
-            st.error(f"Something went wrong: {e}")
+        except Exception:
+            show_error_dialog()
             st.stop()
 
     # Handle the "input didn't make sense" case
