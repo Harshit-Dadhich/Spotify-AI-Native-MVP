@@ -3,6 +3,7 @@ import google.generativeai as genai
 import anthropic
 import json
 import re
+import html as html_module
 
 st.set_page_config(page_title="Discovery, Explained", page_icon="🎧", layout="wide")
 
@@ -103,6 +104,15 @@ div[data-testid="stSlider"] > div > div > div {
 .rec-card.close { border-left-color: #6B87B7; }
 .rec-card.adjacent { border-left-color: #E8A33D; }
 .rec-card.stretch { border-left-color: #1DB954; }
+
+.rec-icon {
+    width: 42px; height: 42px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; margin-bottom: 0.7rem;
+}
+.rec-icon.close { background-color: rgba(107,135,183,0.18); }
+.rec-icon.adjacent { background-color: rgba(232,163,61,0.18); }
+.rec-icon.stretch { background-color: rgba(29,185,84,0.18); }
 
 .rec-num {
     position: absolute; top: 1.1rem; right: 1.2rem;
@@ -225,15 +235,20 @@ go = st.button("🔍 Discover", type="primary")
 # ---------------------------------------------------------------------------
 def build_prompt(taste, request, adventure):
     return f"""You are a music discovery engine. A listener describes their taste and current mood in plain language.
-Your job: interpret their taste (do not ask clarifying questions — infer sensibly), then recommend 8 real songs/artists
-that fit their current mood request.
 
 Listener's usual taste: "{taste}"
 What they want right now: "{request}"
 Comfort-zone slider (0 = stay very close to usual taste, 100 = surprise them with something genuinely different): {adventure}
 
-Bias your picks toward matching this slider value honestly — a high number should include genuinely less-obvious,
-farther-from-taste picks, not just more of the same with a different label.
+FIRST, check whether these inputs make sense as a music taste/mood description. If either input is gibberish,
+unrelated to music (e.g. "fix my car", random characters, empty gibberish), or too vague to work with even
+with reasonable inference, respond with ONLY this JSON object (no markdown fences, no commentary):
+{{"valid": false, "message": "<one short, friendly sentence explaining what's missing or unclear, and what kind of input would work instead>"}}
+
+OTHERWISE, interpret their taste (do not ask clarifying questions — infer sensibly), then recommend 8 real
+songs/artists that fit their current mood request. Bias your picks toward matching the comfort-zone slider
+honestly — a high number should include genuinely less-obvious, farther-from-taste picks, not just more of
+the same with a different label.
 
 Respond with ONLY a valid JSON array (no markdown fences, no commentary), where each item has:
 - "title": song title
@@ -241,7 +256,7 @@ Respond with ONLY a valid JSON array (no markdown fences, no commentary), where 
 - "reason": one sentence, in plain conversational language, explaining specifically why this fits their mood/taste
 - "distance": one of "close", "adjacent", "stretch" — how far this pick is from their stated usual taste
 
-Return exactly 8 items."""
+Return exactly 8 items in that case."""
 
 
 def extract_json(text):
@@ -291,24 +306,40 @@ if go:
             st.error(f"Something went wrong: {e}")
             st.stop()
 
+    # Handle the "input didn't make sense" case
+    if isinstance(recs, dict) and recs.get("valid") is False:
+        st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+        st.warning(
+            f"🔍 **No matches found.** {recs.get('message', 'Try describing your taste and mood a bit differently.')}"
+        )
+        st.stop()
+
+    if not isinstance(recs, list) or len(recs) == 0:
+        st.warning("🔍 **No matches found.** Try describing your taste and mood a bit differently.")
+        st.stop()
+
     st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
     st.markdown("### Your discovery mix")
 
-    cards_html = "<div class='rec-grid'>"
+    ICON = {"close": "🎵", "adjacent": "🎶", "stretch": "✨"}
+
+    card_blocks = []
     for i, r in enumerate(recs, 1):
         dist = r.get("distance", "adjacent").lower()
         if dist not in DIST_LABEL:
             dist = "adjacent"
-        cards_html += f"""
-        <div class="rec-card {dist}">
-            <div class="rec-num">{i:02d}</div>
-            <div class="rec-title">{r.get('title', 'Untitled')}</div>
-            <div class="rec-artist">{r.get('artist', 'Unknown artist')}</div>
-            <div class="rec-reason">{r.get('reason', '')}</div>
-            <span class="tag {dist}">{DIST_LABEL[dist]}</span>
-        </div>
-        """
-    cards_html += "</div>"
+        title = html_module.escape(str(r.get("title", "Untitled")))
+        artist = html_module.escape(str(r.get("artist", "Unknown artist")))
+        reason = html_module.escape(str(r.get("reason", "")))
+        card_blocks.append(
+            f'<div class="rec-card {dist}"><div class="rec-num">{i:02d}</div>'
+            f'<div class="rec-icon {dist}">{ICON[dist]}</div>'
+            f'<div class="rec-title">{title}</div>'
+            f'<div class="rec-artist">{artist}</div>'
+            f'<div class="rec-reason">{reason}</div>'
+            f'<span class="tag {dist}">{DIST_LABEL[dist]}</span></div>'
+        )
+    cards_html = "<div class='rec-grid'>" + "".join(card_blocks) + "</div>"
     st.markdown(cards_html, unsafe_allow_html=True)
 
 else:
