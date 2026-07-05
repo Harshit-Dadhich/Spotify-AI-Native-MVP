@@ -11,12 +11,12 @@ st.set_page_config(page_title="Discovery, Explained", page_icon="🎧", layout="
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
 .stApp {
-    background-color: #121212;
+    background: radial-gradient(circle at 50% -10%, #1a2e21 0%, #121212 45%);
     color: #FFFFFF;
 }
 
@@ -25,73 +25,100 @@ section[data-testid="stSidebar"] {
     border-right: 1px solid #282828;
 }
 
-h1 {
-    font-weight: 800 !important;
-    letter-spacing: -0.02em;
+/* ---- Hero ---- */
+.hero-wrap { text-align: center; padding: 1.2rem 0 0.4rem 0; }
+.logo-badge {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(145deg, #1ED760, #148A3E);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.9rem auto;
+    box-shadow: 0 6px 24px rgba(29,185,84,0.35);
+}
+.hero-title {
+    font-weight: 900; font-size: 2.4rem; letter-spacing: -0.03em;
+    margin: 0; color: #FFFFFF;
+}
+.hero-title .accent { color: #1DB954; }
+.hero-subtitle {
+    color: #B3B3B3; font-size: 1.05rem; max-width: 640px;
+    margin: 0.5rem auto 2rem auto; line-height: 1.5;
 }
 
-h1 .accent { color: #1DB954; }
-
-.subtitle {
-    color: #B3B3B3;
-    font-size: 1.05rem;
-    margin-top: -0.6rem;
-    margin-bottom: 1.8rem;
-}
-
+/* ---- Inputs ---- */
 .stTextArea textarea, .stTextInput input {
-    background-color: #242424 !important;
+    background-color: #1E1E1E !important;
     color: #FFFFFF !important;
-    border: 1px solid #3E3E3E !important;
-    border-radius: 8px !important;
+    border: 1px solid #333333 !important;
+    border-radius: 10px !important;
 }
-
 .stTextArea textarea:focus, .stTextInput input:focus {
     border-color: #1DB954 !important;
     box-shadow: 0 0 0 1px #1DB954 !important;
 }
-
 label, .stMarkdown p { color: #FFFFFF !important; }
 
+/* ---- Slider ---- */
+div[data-testid="stSlider"] div[role="slider"] {
+    background-color: #1DB954 !important;
+    border: 3px solid #FFFFFF !important;
+}
+div[data-testid="stSlider"] > div > div > div {
+    background: linear-gradient(90deg, #1DB954 0%, #E8A33D 100%) !important;
+}
+
+/* ---- Button ---- */
 .stButton > button {
     background-color: #1DB954 !important;
     color: #000000 !important;
     border-radius: 500px !important;
     font-weight: 700 !important;
     border: none !important;
-    padding: 0.6rem 1.6rem !important;
+    padding: 0.7rem 2.2rem !important;
+    font-size: 1rem !important;
     transition: transform 0.15s ease, background-color 0.15s ease;
 }
 .stButton > button:hover {
     background-color: #1ED760 !important;
-    transform: scale(1.02);
+    transform: scale(1.03);
 }
+
+/* ---- Recommendation cards ---- */
+.rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-top: 1.2rem; }
+@media (max-width: 900px) { .rec-grid { grid-template-columns: 1fr; } }
 
 .rec-card {
     background-color: #181818;
-    border-radius: 10px;
-    padding: 1.1rem 1.3rem;
-    margin-bottom: 0.9rem;
+    border-radius: 12px;
+    padding: 1.2rem 1.35rem;
+    border: 1px solid #262626;
     border-left: 4px solid #535353;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    position: relative;
 }
-.rec-card:hover { background-color: #202020; }
-
+.rec-card:hover {
+    background-color: #212121;
+    border-left-width: 6px;
+    transform: translateY(-2px);
+}
 .rec-card.close { border-left-color: #6B87B7; }
 .rec-card.adjacent { border-left-color: #E8A33D; }
 .rec-card.stretch { border-left-color: #1DB954; }
 
-.rec-title { font-size: 1.05rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.15rem; }
-.rec-artist { font-size: 0.9rem; color: #B3B3B3; margin-bottom: 0.5rem; }
-.rec-reason { font-size: 0.92rem; color: #D9D9D9; line-height: 1.4; margin-bottom: 0.6rem; }
+.rec-num {
+    position: absolute; top: 1.1rem; right: 1.2rem;
+    font-size: 1.6rem; font-weight: 800; color: #2A2A2A;
+}
+.rec-title { font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.1rem; padding-right: 2rem; }
+.rec-artist { font-size: 0.88rem; color: #B3B3B3; margin-bottom: 0.65rem; }
+.rec-reason { font-size: 0.92rem; color: #D9D9D9; line-height: 1.45; margin-bottom: 0.75rem; }
 
 .tag {
     display: inline-block;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 0.22rem 0.65rem;
+    padding: 0.28rem 0.7rem;
     border-radius: 500px;
 }
 .tag.close { background-color: rgba(107,135,183,0.18); color: #8FA9D6; }
@@ -99,28 +126,44 @@ label, .stMarkdown p { color: #FFFFFF !important; }
 .tag.stretch { background-color: rgba(29,185,84,0.18); color: #1DB954; }
 
 .compass-label {
-    display: flex;
-    justify-content: space-between;
-    color: #B3B3B3;
-    font-size: 0.85rem;
-    margin-top: -0.5rem;
+    display: flex; justify-content: space-between;
+    color: #B3B3B3; font-size: 0.85rem; margin-top: -0.5rem;
 }
+
+.section-divider { border-top: 1px solid #262626; margin: 2rem 0 1.2rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Header
+# Hero header with original logo mark (not Spotify's trademarked logo)
 # ---------------------------------------------------------------------------
-st.markdown("<h1>🎧 Discovery, <span class='accent'>Explained</span></h1>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='subtitle'>Tell it your taste in your own words. Say what you're in the mood for. "
-    "Every suggestion tells you exactly why — and how far it's stretching from what you already know.</div>",
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div class="hero-wrap">
+    <div class="logo-badge">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+            <path d="M4 14 Q4 8 12 8 Q20 8 20 14" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <circle cx="4" cy="16" r="2.3" fill="#0A0A0A"/>
+            <circle cx="20" cy="16" r="2.3" fill="#0A0A0A"/>
+        </svg>
+    </div>
+    <p class="hero-title">Discovery, <span class="accent">Explained</span></p>
+    <p class="hero-subtitle">Tell it your taste in your own words. Say what you're in the mood for.
+    Every suggestion tells you exactly why — and how far it's stretching from what you already know.</p>
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Sidebar — provider/key
+# Sidebar — provider/key (secrets-first, so testers don't need their own key)
 # ---------------------------------------------------------------------------
+def get_default_key(provider_name):
+    try:
+        if provider_name == "Gemini (free)":
+            return st.secrets.get("GEMINI_API_KEY", "")
+        else:
+            return st.secrets.get("ANTHROPIC_API_KEY", "")
+    except Exception:
+        return ""
+
 with st.sidebar:
     st.header("⚙️ Settings")
     provider = st.radio(
@@ -128,11 +171,22 @@ with st.sidebar:
         ["Gemini (free)", "Claude"],
         help="Gemini's API has a free tier with no credit card needed. Claude requires paid credits."
     )
-    if provider == "Gemini (free)":
-        api_key = st.text_input("Gemini API Key", type="password",
-                                 help="Free key, no card required: aistudio.google.com/apikey")
+
+    default_key = get_default_key(provider)
+
+    if default_key:
+        api_key = default_key
+        st.success("✅ Using built-in API key — no setup needed.")
+        with st.expander("Use your own key instead"):
+            override = st.text_input("Your API key", type="password")
+            if override:
+                api_key = override
     else:
-        api_key = st.text_input("Claude API Key", type="password")
+        api_key = st.text_input(
+            f"{'Gemini' if provider == 'Gemini (free)' else 'Claude'} API Key",
+            type="password",
+            help="Get a free key at aistudio.google.com/apikey" if provider == "Gemini (free)" else None
+        )
 
     st.markdown("---")
     st.caption(
@@ -237,19 +291,25 @@ if go:
             st.error(f"Something went wrong: {e}")
             st.stop()
 
+    st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
     st.markdown("### Your discovery mix")
-    for r in recs:
+
+    cards_html = "<div class='rec-grid'>"
+    for i, r in enumerate(recs, 1):
         dist = r.get("distance", "adjacent").lower()
         if dist not in DIST_LABEL:
             dist = "adjacent"
-        st.markdown(f"""
+        cards_html += f"""
         <div class="rec-card {dist}">
+            <div class="rec-num">{i:02d}</div>
             <div class="rec-title">{r.get('title', 'Untitled')}</div>
             <div class="rec-artist">{r.get('artist', 'Unknown artist')}</div>
             <div class="rec-reason">{r.get('reason', '')}</div>
             <span class="tag {dist}">{DIST_LABEL[dist]}</span>
         </div>
-        """, unsafe_allow_html=True)
+        """
+    cards_html += "</div>"
+    st.markdown(cards_html, unsafe_allow_html=True)
 
 else:
     st.info("👈 Fill in your taste, your current mood, and the comfort-zone slider, then click **Discover**.")
